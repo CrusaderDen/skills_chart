@@ -95,6 +95,7 @@ const data = [
         otherSkills: ["Figma", "Sketch", "Shopify"],
     },
 ]
+
 const rolesArr = data.reduce((acc, item) => {
     return acc.concat(item.name);
 }, [])
@@ -135,6 +136,7 @@ const canvasCenter = {
 let selectedRoleIndex = null;
 let selectedSkillIndex = null;
 let selectedRole_xy = null
+let selectedSkill_xy = null
 const roles_xy = []
 const roles_text_xy = []
 const skills_xy = []
@@ -149,14 +151,14 @@ function drawRing(centerX, centerY, radius) {
     c.closePath();
 }
 
-function drawPoint(x, y, type) {
+function drawPoint(x, y, variant) {
     let fillColor
     let isActive = false
-    if (type.startsWith('active')) {
+    if (variant.startsWith('active')) {
         isActive = true
     }
 
-    switch (type) {
+    switch (variant) {
         case 'role' :
             fillColor = COLOR_GREY
             break;
@@ -201,7 +203,7 @@ function drawPoint(x, y, type) {
     c.closePath();
 }
 
-function drawText(text, textX, textY) {
+function drawText(textX, textY, text) {
     const words = text.split(' ');
     let line = '';
     const lineHeight = 12;
@@ -243,31 +245,28 @@ function draw() {
 
     // Get roles XY
     for (let i = 0; i < numberOfRoles; i++) {
-        const angle = i * rolesAngleStep;
+        const angle = (i * rolesAngleStep) - 3.14 / 2;
         const roleX = canvasCenter.x + innerRingRadius * Math.cos(angle);
         const roleY = canvasCenter.y + innerRingRadius * Math.sin(angle);
         const textX = canvasCenter.x + (innerRingRadius + 60) * Math.cos(angle);
         const textY = canvasCenter.y + (innerRingRadius + 60) * Math.sin(angle);
-        roles_xy.push([roleX, roleY, rolesArr[i]]);
+        roles_xy.push([roleX, roleY, rolesArr[i], angle]);
         roles_text_xy.push([textX, textY, rolesArr[i]]);
-
 
     }
 
     // Get skills XY
     for (let i = 0; i < numberOfSkills; i++) {
-        const angle = i * skillsAngleStep;
+        const angle = (i * skillsAngleStep) - 3.14 / 2;
         const skillX = canvasCenter.x + outerRingRadius * Math.cos(angle);
         const skillY = canvasCenter.y + outerRingRadius * Math.sin(angle);
         const textX = canvasCenter.x + (outerRingRadius + 40) * Math.cos(angle);
         const textY = canvasCenter.y + (outerRingRadius + 40) * Math.sin(angle);
-        skills_xy.push([skillX, skillY, skillsArr[i]]);
+        skills_xy.push([skillX, skillY, skillsArr[i], angle]);
         skills_text_xy.push([textX, textY, skillsArr[i]]);
-
     }
 
     //Draw lines
-
     if (selectedRole_xy !== null) {
         const skillsForRole = data.find(item => item.name === selectedRole_xy[2])
         otherSkillsForRole_xy = skills_xy.filter(item => skillsForRole.otherSkills.includes(item[2]));
@@ -306,23 +305,25 @@ function draw() {
         }
 
         drawPoint(roles_xy[i][0], roles_xy[i][1], type)
-        drawText(roles_text_xy[i][2], roles_text_xy[i][0], roles_text_xy[i][1]);
+        drawText(roles_text_xy[i][0], roles_text_xy[i][1], roles_text_xy[i][2]);
     }
 
     // Draw skills
     for (let i = 0; i < numberOfSkills; i++) {
-        let type
+        let variant
 
         if (selectedSkillIndex === i) {
-            type = 'activeSkill'
+            variant = 'activeSkill'
         } else if (activeSkills?.includes(skillsArr[i])) {
-            type = 'linkedSkill'
+            variant = 'linkedSkill'
         } else {
-            type = 'skill'
+            variant = 'skill'
         }
-        drawPoint(skills_xy[i][0], skills_xy[i][1], type)
-        drawText(skills_text_xy[i][2], skills_text_xy[i][0], skills_text_xy[i][1]);
+        drawPoint(skills_xy[i][0], skills_xy[i][1], variant)
+        drawText(skills_text_xy[i][0], skills_text_xy[i][1], skills_text_xy[i][2]);
     }
+    console.log(selectedRole_xy)
+    console.log(selectedSkill_xy)
 }
 
 //Click handler
@@ -334,8 +335,10 @@ canvas.addEventListener('click', (event) => {
     for (let i = 0; i < numberOfRoles; i++) {
         const distance = Math.sqrt((mouseX - roles_xy[i][0]) ** 2 + (mouseY - roles_xy[i][1]) ** 2);
         if (distance < 12) {
+            selectedSkillIndex = null
+            selectedSkill_xy = null
             selectedRoleIndex = i;
-            selectedRole_xy = [roles_xy[i][0], roles_xy[i][1], roles_xy[i][2]];
+            selectedRole_xy = [roles_xy[i][0], roles_xy[i][1], roles_xy[i][2], roles_xy[i][3]];
             draw();
             return;
         }
@@ -343,7 +346,10 @@ canvas.addEventListener('click', (event) => {
     for (let i = 0; i < numberOfSkills; i++) {
         const distance = Math.sqrt((mouseX - skills_xy[i][0]) ** 2 + (mouseY - skills_xy[i][1]) ** 2);
         if (distance < 12) {
+            selectedRoleIndex = null
+            selectedRole_xy = null
             selectedSkillIndex = i;
+            selectedSkill_xy = [skills_xy[i][0], skills_xy[i][1], skills_xy[i][2], skills_xy[i][3]];
             draw();
             return;
         }
@@ -376,22 +382,3 @@ canvas.addEventListener('mousemove', (event) => {
 });
 
 draw();
-
-
-const var1 = {
-    'Дизайнер': [500, 400],
-    'Менеджер': [150, 300],
-    'Предприниматель': [200, 250],
-}
-
-const var2 = {
-    '500 400': 'Дизайнер',
-    '150 300': 'Менеджер',
-    '200, 250': 'Предприниматель',
-}
-
-const var3 = [
-    ['Дизайнер', 500, 400],
-    ['Менеджер', 150, 300],
-    ['Предприниматель', 200, 250],
-]
