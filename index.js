@@ -137,10 +137,10 @@ let selectedRoleIndex = null;
 let selectedSkillIndex = null;
 let selectedRole_xy = null
 let selectedSkill_xy = null
-const roles_xy = []
-const roles_text_xy = []
-const skills_xy = []
-const skills_text_xy = []
+let roles_xy = []
+let roles_text_xy = []
+let skills_xy = []
+let skills_text_xy = []
 
 function drawRing(centerX, centerY, radius) {
     c.lineWidth = 3;
@@ -228,6 +228,17 @@ function drawText(textX, textY, text) {
     c.fillText(line, textX, textY);
 }
 
+function findClosestIndexes(arr, target, count) {
+    const onlyAngles = arr.map(el => el[3])
+    const indexedArray = onlyAngles.map((value, index) => ({value, index}));
+    indexedArray.sort((a, b) => Math.abs(a.value - target) - Math.abs(b.value - target));
+    const closestIndices = indexedArray.slice(0, count).map(item => item.index);
+    closestIndices.sort((a, b) => a - b);
+
+    return closestIndices;
+
+}
+
 function draw() {
     //clear
     roles_xy.length = 0;
@@ -237,7 +248,8 @@ function draw() {
     c.clearRect(0, 0, canvasWidth, canvasHeight);
 
 
-    let otherSkillsForRole_xy, mainSkillsForRole_xy, activeSkills
+    let otherSkillsForRole_xy, mainSkillsForRole_xy
+    let activeSkills = []
 
     // Draw rings
     drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
@@ -265,8 +277,7 @@ function draw() {
         skills_xy.push([skillX, skillY, skillsArr[i], angle]);
         skills_text_xy.push([textX, textY, skillsArr[i]]);
     }
-
-    //Draw lines
+    // Get lines XY
     if (selectedRole_xy !== null) {
         const skillsForRole = data.find(item => item.name === selectedRole_xy[2])
         otherSkillsForRole_xy = skills_xy.filter(item => skillsForRole.otherSkills.includes(item[2]));
@@ -274,8 +285,32 @@ function draw() {
         activeSkills = otherSkillsForRole_xy.concat(mainSkillsForRole_xy).map(item => item[2]);
     }
 
+    if (selectedRoleIndex !== null) {
+        const indexes = findClosestIndexes(roles_xy, selectedRole_xy[3], activeSkills.length)
+        const titles = skills_xy.map(el => el[2])
+        for (let i = indexes[0]; i <= indexes.at(-1); i++) {
+            let saveChanged = titles[i]
+            let forInsert = activeSkills.splice(0, 1)[0]
+            titles[i] = forInsert
+            let index = titles.findIndex((item, index) => {
+                return item === forInsert && !indexes.includes(index)
+            })
+            titles[index] = saveChanged
+        }
+        skills_xy = skills_xy.map((item, index) => {
+            return [item[0], item[1], titles[index], item[3]]
+        })
+        skills_text_xy = skills_text_xy.map((item, index) => {
+            return [item[0], item[1], titles[index]]
+        })
+        console.log()
+    }
+
+    //Draw lines
 
     if (selectedRoleIndex !== null) {
+
+
         for (let i = 0; i < otherSkillsForRole_xy.length; i++) {
             c.beginPath();
             c.strokeStyle = COLOR_ORANGE_STRONG
@@ -293,6 +328,7 @@ function draw() {
             c.stroke()
             c.closePath()
         }
+
     }
     // Draw roles
     for (let i = 0; i < numberOfRoles; i++) {
@@ -308,6 +344,7 @@ function draw() {
         drawText(roles_text_xy[i][0], roles_text_xy[i][1], roles_text_xy[i][2]);
     }
 
+
     // Draw skills
     for (let i = 0; i < numberOfSkills; i++) {
         let variant
@@ -322,8 +359,6 @@ function draw() {
         drawPoint(skills_xy[i][0], skills_xy[i][1], variant)
         drawText(skills_text_xy[i][0], skills_text_xy[i][1], skills_text_xy[i][2]);
     }
-    console.log(selectedRole_xy)
-    console.log(selectedSkill_xy)
 }
 
 //Click handler
@@ -382,3 +417,49 @@ canvas.addEventListener('mousemove', (event) => {
 });
 
 draw();
+
+
+/*
+const goal = [400.1011334922631, 273.000040267657, "Visio", 0.97]
+const actives = ['Финансовый аналитик', 'Менеджер по маркетингу', 'Менеджер по цифровой трансформации']
+
+
+const var1 = [
+    [400.1011334922631, 273.000040267657, "Финансовый аналитик", -1.57],
+    [474.7305220863505, 297.3143190668656, "Предприниматель", -0.9416814692820414],
+    [520.8153912404767, 360.85103782460453, "Продуктовый дизайнер", -0.3133629385640828],
+
+    [520.7528873048572, 439.34132950906053, "Менеджер проекта", 0.3149555921538758],
+    [474.5668846584678, 502.8045704836646, "Финансовый менеджер", 0.9432741228718344],
+    [399.8988665077369, 526.999959732343, "Руководитель финансового департамента компании", 1.571592653589793],
+
+    [325.26947791364955, 502.6856809331344, "Продуктовый аналитик", 2.1999111843077515],
+    [279.1846087595233, 439.1489621753955, "Руководитель финансового продукта", 2.82822971502571],
+    [279.24711269514285, 360.6586704909395, "Менеджер по маркетингу", 3.4565482457436687],
+    [325.43311534153213, 297.1954295163354, "Менеджер по цифровой трансформации", 4.084866776461627]
+]
+
+
+function findClosestIndexes(arr, target, count) {
+    const onlyAngles = arr.map(el => el[3])
+    const indexedArray = onlyAngles.map((value, index) => ({value, index}));
+    indexedArray.sort((a, b) => Math.abs(a.value - target) - Math.abs(b.value - target));
+    const closestIndices = indexedArray.slice(0, count).map(item => item.index);
+    closestIndices.sort((a, b) => a - b);
+
+    return closestIndices;
+
+}
+
+const indexes = findClosestIndexes(var1, 0.94, actives.length)
+const oldTitles = var1.map(el => el[2])
+for (let i = indexes[0]; i <= indexes.at(-1); i++) {
+    let saveChanged = oldTitles[i]
+    let forInsert = actives.splice(0, 1)[0]
+    oldTitles[i] = forInsert
+    let index = oldTitles.findIndex((item, index) => {
+        return item === forInsert && !indexes.includes(index)
+    })
+    oldTitles[index] = saveChanged
+}
+*/
