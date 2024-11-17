@@ -1,0 +1,14 @@
+body {
+    /*background-color: #dddddd;*/
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+#canvas_plot {
+    /*background-color: cadetblue;*/
+    /*border-radius: 5px;*/
+    box-shadow: -2px -2px 15px #cdcdcd, 5px 5px 15px #545454
+}
