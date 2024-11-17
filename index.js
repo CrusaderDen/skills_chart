@@ -136,7 +136,9 @@ let selectedRoleIndex = null;
 let selectedSkillIndex = null;
 let selectedRole_xy = null
 const roles_xy = []
+const roles_text_xy = []
 const skills_xy = []
+const skills_text_xy = []
 
 function drawRing(centerX, centerY, radius) {
     c.lineWidth = 3;
@@ -160,6 +162,12 @@ function drawPoint(x, y, type) {
             break;
         case 'skill' :
             fillColor = COLOR_ORANGE_WEAK
+            break;
+        case 'linkedRole' :
+            fillColor = COLOR_GREEN
+            break;
+        case 'linkedSkill' :
+            fillColor = COLOR_ORANGE_STRONG
             break;
         case 'activeRole' :
             fillColor = COLOR_GREEN
@@ -219,53 +227,52 @@ function drawText(text, textX, textY) {
 }
 
 function draw() {
+    //clear
     roles_xy.length = 0;
     skills_xy.length = 0;
+    roles_text_xy.length = 0;
+    skills_text_xy.length = 0;
     c.clearRect(0, 0, canvasWidth, canvasHeight);
+
+
+    let otherSkillsForRole_xy, mainSkillsForRole_xy, activeSkills
+
     // Draw rings
     drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
     drawRing(canvasCenter.x, canvasCenter.y, outerRingRadius);
 
-    // Draw roles
+    // Get roles XY
     for (let i = 0; i < numberOfRoles; i++) {
         const angle = i * rolesAngleStep;
         const roleX = canvasCenter.x + innerRingRadius * Math.cos(angle);
         const roleY = canvasCenter.y + innerRingRadius * Math.sin(angle);
+        const textX = canvasCenter.x + (innerRingRadius + 60) * Math.cos(angle);
+        const textY = canvasCenter.y + (innerRingRadius + 60) * Math.sin(angle);
         roles_xy.push([roleX, roleY, rolesArr[i]]);
-        const type = (selectedRoleIndex === i) ? 'activeRole' : 'role';
-        drawPoint(roleX, roleY, type);
+        roles_text_xy.push([textX, textY, rolesArr[i]]);
 
 
-        // Calculate position for role text
-        let textX = canvasCenter.x + (innerRingRadius + 60) * Math.cos(angle); // 30 pixels away from inner ring
-        let textY = canvasCenter.y + (innerRingRadius + 60) * Math.sin(angle); // 30 pixels away from inner ring
-
-        drawText(rolesArr[i], textX, textY);
     }
 
-    // Draw skills
+    // Get skills XY
     for (let i = 0; i < numberOfSkills; i++) {
         const angle = i * skillsAngleStep;
         const skillX = canvasCenter.x + outerRingRadius * Math.cos(angle);
         const skillY = canvasCenter.y + outerRingRadius * Math.sin(angle);
+        const textX = canvasCenter.x + (outerRingRadius + 40) * Math.cos(angle);
+        const textY = canvasCenter.y + (outerRingRadius + 40) * Math.sin(angle);
         skills_xy.push([skillX, skillY, skillsArr[i]]);
-        const type = (selectedSkillIndex === i) ? 'activeSkill' : 'skill';
-        drawPoint(skillX, skillY, type);
-
-        // Calculate position for role text
-        let textX = canvasCenter.x + (outerRingRadius + 40) * Math.cos(angle); // 30 pixels away from inner ring
-        let textY = canvasCenter.y + (outerRingRadius + 40) * Math.sin(angle); // 30 pixels away from inner ring
-        drawText(skillsArr[i], textX, textY);
+        skills_text_xy.push([textX, textY, skillsArr[i]]);
 
     }
 
     //Draw lines
-    let otherSkillsForRole_xy, mainSkillsForRole_xy
+
     if (selectedRole_xy !== null) {
         const skillsForRole = data.find(item => item.name === selectedRole_xy[2])
         otherSkillsForRole_xy = skills_xy.filter(item => skillsForRole.otherSkills.includes(item[2]));
         mainSkillsForRole_xy = skills_xy.filter(item => skillsForRole.mainSkills.includes(item[2]));
-        console.log(otherSkillsForRole_xy)
+        activeSkills = otherSkillsForRole_xy.concat(mainSkillsForRole_xy).map(item => item[2]);
     }
 
 
@@ -287,6 +294,34 @@ function draw() {
             c.stroke()
             c.closePath()
         }
+    }
+    // Draw roles
+    for (let i = 0; i < numberOfRoles; i++) {
+        let type
+
+        if (selectedRoleIndex === i) {
+            type = 'activeRole'
+        } else {
+            type = 'role'
+        }
+
+        drawPoint(roles_xy[i][0], roles_xy[i][1], type)
+        drawText(roles_text_xy[i][2], roles_text_xy[i][0], roles_text_xy[i][1]);
+    }
+
+    // Draw skills
+    for (let i = 0; i < numberOfSkills; i++) {
+        let type
+
+        if (selectedSkillIndex === i) {
+            type = 'activeSkill'
+        } else if (activeSkills?.includes(skillsArr[i])) {
+            type = 'linkedSkill'
+        } else {
+            type = 'skill'
+        }
+        drawPoint(skills_xy[i][0], skills_xy[i][1], type)
+        drawText(skills_text_xy[i][2], skills_text_xy[i][0], skills_text_xy[i][1]);
     }
 }
 
