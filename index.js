@@ -41,7 +41,7 @@ chart_data = {
     ...chart_data,
     selectedRoleId: null,
     selectedSkillId: null,
-    activeSkills: [],
+    linkedPoints: [],
     get rolesList() {
         const res = []
         for (let key in this.roles) {
@@ -67,8 +67,6 @@ chart_data = {
 
 const rolesCount = chart_data.rolesCount;
 const skillsCount = chart_data.skillsCount;
-const rolesList = chart_data.rolesList
-const skillsList = chart_data.skillsList
 const rolesAngleStep = (2 * Math.PI) / rolesCount;
 const skillsAngleStep = (2 * Math.PI) / skillsCount;
 
@@ -226,6 +224,7 @@ function draw() {
         const mainSkillsForSelectedRole = chart_data.roles[chart_data.selectedRoleId].mainSkills;
         const otherSkillsForSelectedRole = chart_data.roles[chart_data.selectedRoleId].otherSkills;
         const commonSkillsArr = [...mainSkillsForSelectedRole, ...otherSkillsForSelectedRole];
+        chart_data.linkedPoints = [...commonSkillsArr]
         const skillIdsForReplace = findClosestSkillIdsForRole(chart_data, chart_data.selectedRoleId, commonSkillsArr.length)
         const skillsValues = Object.values(chart_data.skills)
         const start = +skillIdsForReplace.at(0)
@@ -249,6 +248,7 @@ function draw() {
             }
             return res
         }, [])
+        chart_data.linkedPoints = rolesForSelectedSkill
         const roleIdsForReplace = findClosestRoleIdsForSkill(chart_data, chart_data.selectedSkillId, rolesForSelectedSkill.length)
         const roleValues = Object.values(chart_data.roles)
         const start = +roleIdsForReplace.at(0)
@@ -315,6 +315,7 @@ function draw() {
             }
             return res
         }, [])
+        chart_data.linkedPoints = rolesForSelectedSkill
         for (let i = 0; i < rolesForSelectedSkill.length; i++) {
             const role = Object.values(chart_data.roles).find(role => role.name === rolesForSelectedSkill[i])
             c.beginPath();
@@ -331,13 +332,15 @@ function draw() {
     // Draw rings
     drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
     drawRing(canvasCenter.x, canvasCenter.y, outerRingRadius);
-
+    console.log(chart_data)
     //Draw points
     for (let i = 0; i < rolesCount; i++) {
         let variant
 
         if (chart_data.selectedRoleId === i) {
             variant = 'activeRole'
+        } else if (chart_data.linkedPoints.includes(chart_data.rolesList[i])) {
+            variant = 'linkedRole'
         } else {
             variant = 'role'
         }
@@ -350,7 +353,7 @@ function draw() {
 
         if (chart_data.selectedSkillId === i) {
             variant = 'activeSkill'
-        } else if (chart_data.activeSkills.includes(skillsList[i])) {
+        } else if (chart_data.linkedPoints.includes(chart_data.skillsList[i])) {
             variant = 'linkedSkill'
         } else {
             variant = 'skill'
