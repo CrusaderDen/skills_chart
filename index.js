@@ -1,106 +1,55 @@
-const data = [
-    {
-        name: "Финансовый аналитик",
-        mainSkills: ["Excel", "SQL", "VBA", "1С"],
-        otherSkills: ["Power BI", "Python"],
-    },
-    {
-        name: "Предприниматель",
-        mainSkills: ["1C", "Excel", "Power BI"],
-        otherSkills: [
-            "Google Analytics",
-            "Яндекс.Метрика",
-            "Python",
-            "SQL",
-            "Tilda",
-        ],
-    },
-    {
-        name: "Продуктовый дизайнер",
-        mainSkills: [
-            "Figma",
-            "Sketch",
-            "Illustrator",
-            "Photoshop",
-            "Principle",
-            "Tilda",
-        ],
-        otherSkills: ["Shopify", "Protopie", "Cinema 4D"],
-    },
-    {
-        name: "Менеджер проекта",
-        mainSkills: [
-            "Visio",
-            "1C",
-            "Google Analytics",
-            "Яндекс.Метрика",
-            "Python",
-            "SQL",
-            "Tilda",
-        ],
-        otherSkills: ["Figma", "Sketch", "Shopify"],
-    },
-    {
-        name: "Финансовый менеджер",
-        mainSkills: ["1C", "Excel", "Power BI"],
-        otherSkills: ["BPMN"],
-    },
-    {
-        name: "Руководитель финансового департамента компании",
-        mainSkills: ["Sketch", "Figma"],
-        otherSkills: ["Shopify", "HQL"],
-    },
+function initial(obj) {
 
-    {
-        name: "Продуктовый аналитик",
-        mainSkills: [
-            "Google Analytics",
-            "Яндекс.Метрика",
-            "SQL",
-            "Power BI",
-            "Python",
-            "Excel",
-        ],
-        otherSkills: ["HQL", "Tableau", "R", "Machine learning"],
-    },
+    const skills = Array.from(new Set(obj.reduce((acc, item) => {
+        return acc.concat(item.mainSkills, item.otherSkills).sort();
+    }, [])))
 
-    {
-        name: "Руководитель финансового продукта",
-        mainSkills: ["Visio"],
-        otherSkills: ["Python"],
-    },
-    {
-        name: "Менеджер по маркетингу",
-        mainSkills: [
-            "Google Analytics",
-            "Яндекс.Метрика",
-            "Google Ads",
-            "Ahrefs",
-            "Главред",
-            "My Target",
-        ],
-        otherSkills: ["Tilda", "Photoshop", "Xenu", "Python"],
-    },
 
-    {
-        name: "Менеджер по цифровой трансформации",
-        mainSkills: [
-            "Visio",
-            "Google Analytics",
-            "Яндекс.Метрика",
-            "Python",
-            "SQL",
-            "Tilda",
-        ],
-        otherSkills: ["Figma", "Sketch", "Shopify"],
-    },
-]
+    const chart_data = {
+        roles: {},
+        skills: {},
+    }
+    let idCounter = 0
+    obj.forEach(item => {
+        const id = idCounter++
+        chart_data.roles[id] = {...item, x: null, y: null, angle: null};
+    })
+    skills.forEach(item => {
+        const id = idCounter++
+        chart_data.skills[id] = {name: item, x: null, y: null, angle: null};
+    })
 
-const rolesArr = data.reduce((acc, item) => {
+    return chart_data
+}
+
+let chart_data = initial(initial_data)
+
+chart_data = {
+    ...chart_data,
+    get rolesList() {
+        const res = []
+        for (let key in this.roles) {
+            res.push(this.roles[key].name)
+        }
+        return res
+    },
+    get skillsList() {
+        const res = []
+        for (let key in this.skills) {
+            res.push(this.skills[key].name)
+        }
+        return res
+    }
+}
+
+const roles = chart_data.skillsList
+console.log(roles)
+
+const rolesArr = initial_data.reduce((acc, item) => {
     return acc.concat(item.name);
 }, [])
 
-const skillsArr = Array.from(new Set(data.reduce((acc, item) => {
+const skillsArr = Array.from(new Set(initial_data.reduce((acc, item) => {
     return acc.concat(item.mainSkills, item.otherSkills);
 }, [])))
 
@@ -279,32 +228,32 @@ function draw() {
     }
     // Get lines XY
     if (selectedRole_xy !== null) {
-        const skillsForRole = data.find(item => item.name === selectedRole_xy[2])
+        const skillsForRole = initial_data.find(item => item.name === selectedRole_xy[2])
         otherSkillsForRole_xy = skills_xy.filter(item => skillsForRole.otherSkills.includes(item[2]));
         mainSkillsForRole_xy = skills_xy.filter(item => skillsForRole.mainSkills.includes(item[2]));
         activeSkills = otherSkillsForRole_xy.concat(mainSkillsForRole_xy).map(item => item[2]);
     }
 
-    if (selectedRoleIndex !== null) {
-        const indexes = findClosestIndexes(roles_xy, selectedRole_xy[3], activeSkills.length)
-        const titles = skills_xy.map(el => el[2])
-        for (let i = indexes[0]; i <= indexes.at(-1); i++) {
-            let saveChanged = titles[i]
-            let forInsert = activeSkills.splice(0, 1)[0]
-            titles[i] = forInsert
-            let index = titles.findIndex((item, index) => {
-                return item === forInsert && !indexes.includes(index)
-            })
-            titles[index] = saveChanged
-        }
-        skills_xy = skills_xy.map((item, index) => {
-            return [item[0], item[1], titles[index], item[3]]
-        })
-        skills_text_xy = skills_text_xy.map((item, index) => {
-            return [item[0], item[1], titles[index]]
-        })
-        console.log()
-    }
+    // if (selectedRoleIndex !== null) {
+    //     const indexes = findClosestIndexes(roles_xy, selectedRole_xy[3], activeSkills.length)
+    //     const titles = skills_xy.map(el => el[2])
+    //     for (let i = indexes[0]; i <= indexes.at(-1); i++) {
+    //         let saveChanged = titles[i]
+    //         let forInsert = activeSkills.splice(0, 1)[0]
+    //         titles[i] = forInsert
+    //         let index = titles.findIndex((item, index) => {
+    //             return item === forInsert && !indexes.includes(index)
+    //         })
+    //         titles[index] = saveChanged
+    //     }
+    //     skills_xy = skills_xy.map((item, index) => {
+    //         return [item[0], item[1], titles[index], item[3]]
+    //     })
+    //     skills_text_xy = skills_text_xy.map((item, index) => {
+    //         return [item[0], item[1], titles[index]]
+    //     })
+    //     console.log()
+    // }
 
     //Draw lines
 
@@ -418,48 +367,56 @@ canvas.addEventListener('mousemove', (event) => {
 
 draw();
 
+const chart_example = {
+    roles: {
+        id_383839: {
+            name: 'Финансовый аналитик',
+            x: 200,
+            y: 400,
+            angle: 2.08,
+            mainSkills: ["Excel", "SQL", "VBA", "1С"],
+            otherSkills: ["Power BI", "Python"],
+        },
+        id_383845: {
+            name: 'Предприниматель',
+            x: 240,
+            y: 380,
+            angle: 3.14,
+            mainSkills: ["1C", "Excel", "Power BI"],
+            otherSkills: [
+                "Google Analytics",
+                "Яндекс.Метрика",
+                "Python",
+                "SQL",
+                "Tilda",
+            ],
+        }
+    },
+    skills: {
+        id_383123: {
+            name: 'Python',
+            x: 465,
+            y: 688,
+            angle: 0.56
+        },
+        id_386768: {
+            name: 'SQL',
+            x: 190,
+            y: 365,
+            angle: 1.38
+        }
+    },
 
-/*
-const goal = [400.1011334922631, 273.000040267657, "Visio", 0.97]
-const actives = ['Финансовый аналитик', 'Менеджер по маркетингу', 'Менеджер по цифровой трансформации']
-
-
-const var1 = [
-    [400.1011334922631, 273.000040267657, "Финансовый аналитик", -1.57],
-    [474.7305220863505, 297.3143190668656, "Предприниматель", -0.9416814692820414],
-    [520.8153912404767, 360.85103782460453, "Продуктовый дизайнер", -0.3133629385640828],
-
-    [520.7528873048572, 439.34132950906053, "Менеджер проекта", 0.3149555921538758],
-    [474.5668846584678, 502.8045704836646, "Финансовый менеджер", 0.9432741228718344],
-    [399.8988665077369, 526.999959732343, "Руководитель финансового департамента компании", 1.571592653589793],
-
-    [325.26947791364955, 502.6856809331344, "Продуктовый аналитик", 2.1999111843077515],
-    [279.1846087595233, 439.1489621753955, "Руководитель финансового продукта", 2.82822971502571],
-    [279.24711269514285, 360.6586704909395, "Менеджер по маркетингу", 3.4565482457436687],
-    [325.43311534153213, 297.1954295163354, "Менеджер по цифровой трансформации", 4.084866776461627]
-]
-
-
-function findClosestIndexes(arr, target, count) {
-    const onlyAngles = arr.map(el => el[3])
-    const indexedArray = onlyAngles.map((value, index) => ({value, index}));
-    indexedArray.sort((a, b) => Math.abs(a.value - target) - Math.abs(b.value - target));
-    const closestIndices = indexedArray.slice(0, count).map(item => item.index);
-    closestIndices.sort((a, b) => a - b);
-
-    return closestIndices;
+    getRoles() {
+        for (let key in this.roles) {
+            console.log(this.roles[key].name)
+        }
+    },
+    getSkills() {
+        for (let key in this.skills) {
+            console.log(this.skills[key].name)
+        }
+    }
 
 }
 
-const indexes = findClosestIndexes(var1, 0.94, actives.length)
-const oldTitles = var1.map(el => el[2])
-for (let i = indexes[0]; i <= indexes.at(-1); i++) {
-    let saveChanged = oldTitles[i]
-    let forInsert = actives.splice(0, 1)[0]
-    oldTitles[i] = forInsert
-    let index = oldTitles.findIndex((item, index) => {
-        return item === forInsert && !indexes.includes(index)
-    })
-    oldTitles[index] = saveChanged
-}
-*/
