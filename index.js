@@ -179,8 +179,8 @@ function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
     const skills = chart_data.skills
     const skillsToArr = Object.entries(skills)
     skillsToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-    const closestIds = skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
-    return closestIds
+    return skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+
 }
 
 function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
@@ -188,8 +188,7 @@ function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
     const roles = chart_data.roles
     const rolesToArr = Object.entries(roles)
     rolesToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-    const closestIds = rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
-    return closestIds
+    return rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
 }
 
 
@@ -241,7 +240,6 @@ function draw() {
         }
     }
 
-
     //Sort roles for selected skill
     if (chart_data.selectedSkillId !== null) {
         const selectedSkillName = chart_data.skills[chart_data.selectedSkillId].name
@@ -261,9 +259,23 @@ function draw() {
             if (role_1 === role_2) continue
             let objectForReplace_1 = roleValues.findIndex(role => role.name === role_1)
             let objectForReplace_2 = roleValues.findIndex(role => role.name === role_2)
+            let coords_1 = {
+                x: chart_data.roles[objectForReplace_1].x,
+                y: chart_data.roles[objectForReplace_1].y,
+                text_x: chart_data.roles[objectForReplace_1].text_x,
+                text_y: chart_data.roles[objectForReplace_1].text_y,
+                angle: chart_data.roles[objectForReplace_1].angle
+            }
+            let coords_2 = {
+                x: chart_data.roles[objectForReplace_2].x,
+                y: chart_data.roles[objectForReplace_2].y,
+                text_x: chart_data.roles[objectForReplace_2].text_x,
+                text_y: chart_data.roles[objectForReplace_2].text_y,
+                angle: chart_data.roles[objectForReplace_2].angle
+            }
             let temp = chart_data.roles[objectForReplace_2]
-            chart_data.roles[objectForReplace_2] = chart_data.roles[objectForReplace_1]
-            chart_data.roles[objectForReplace_1] = temp
+            chart_data.roles[objectForReplace_2] = {...chart_data.roles[objectForReplace_1], ...coords_2}
+            chart_data.roles[objectForReplace_1] = {...temp, ...coords_1}
         }
     }
 
@@ -350,7 +362,6 @@ function draw() {
     //Draw text
     for (let i = 0; i < rolesCount; i++) {
         let currentRole = chart_data.roles[i]
-        console.log(currentRole)
         drawText(currentRole.text_x, currentRole.text_y, currentRole.name);
     }
 
@@ -359,62 +370,66 @@ function draw() {
         drawText(currentSkill.text_x, currentSkill.text_y, currentSkill.name);
     }
 
-
-// Event handlers
-    canvas.addEventListener('click', (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-
-        for (let i = 0; i < rolesCount; i++) {
-            let currentRole = chart_data.roles[i]
-            const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
-            if (distance < 12) {
-                chart_data.selectedSkillId = null
-                chart_data.selectedRoleId = i;
-                draw();
-                return;
-            }
-        }
-        for (let i = 0; i < skillsCount; i++) {
-            let currentSkill = chart_data.skills[i]
-            const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
-            if (distance < 12) {
-                chart_data.selectedRoleId = null
-                chart_data.selectedSkillId = i;
-                draw();
-                return;
-            }
-        }
-    });
-
-    canvas.addEventListener('mousemove', (event) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        let isOverPoint = false;
-
-        for (let i = 0; i < rolesCount; i++) {
-            let currentRole = chart_data.roles[i]
-            const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
-            if (distance < 12) {
-                isOverPoint = true;
-                break;
-            }
-        }
-        for (let i = 0; i < skillsCount; i++) {
-            let currentSkill = chart_data.skills[i]
-            const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
-            if (distance < 12) {
-                isOverPoint = true;
-                break;
-            }
-        }
-
-        // Изменение курсора
-        canvas.style.cursor = isOverPoint ? 'pointer' : 'default';
-    });
 }
 
-draw();
 
+// Event handlers
+canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    for (let i = 0; i < skillsCount; i++) {
+        let currentSkill = chart_data.skills[i]
+        const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
+        if (distance < 12) {
+            chart_data.selectedRoleId = null
+            chart_data.selectedSkillId = i;
+            draw();
+            return;
+        }
+    }
+
+    for (let i = 0; i < rolesCount; i++) {
+        let currentRole = chart_data.roles[i]
+        const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
+        if (distance < 12) {
+            chart_data.selectedSkillId = null
+            chart_data.selectedRoleId = i;
+            draw();
+            return;
+        }
+    }
+
+});
+
+canvas.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    let isOverPoint = false;
+
+    for (let i = 0; i < skillsCount; i++) {
+        let currentSkill = chart_data.skills[i]
+        const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
+        if (distance < 12) {
+            isOverPoint = true;
+            break;
+        }
+    }
+
+    for (let i = 0; i < rolesCount; i++) {
+        let currentRole = chart_data.roles[i]
+        const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
+        if (distance < 12) {
+            isOverPoint = true;
+            break;
+        }
+    }
+
+
+    // Изменение курсора
+    canvas.style.cursor = isOverPoint ? 'pointer' : 'default';
+});
+
+draw();
