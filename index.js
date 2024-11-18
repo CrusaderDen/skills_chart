@@ -172,21 +172,59 @@ function drawText(textX, textY, text) {
     c.fillText(line, textX, textY);
 }
 
-function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
-    const targetAngle = chart_data.roles[roleId].angle
-    const skills = chart_data.skills
-    const skillsToArr = Object.entries(skills)
-    skillsToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-    return skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+// function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
+//     const targetAngle = chart_data.roles[roleId].angle
+//     const skills = chart_data.skills
+//     const skillsToArr = Object.entries(skills)
+//     skillsToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
+//     return skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+//
+// }
+//
+// function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
+//     const targetAngle = chart_data.skills[skillId].angle
+//     const roles = chart_data.roles
+//     const rolesToArr = Object.entries(roles)
+//     rolesToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
+//     return rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+// }
 
+function normalizeAngle(angle) {
+    // Приводим угол к диапазону от 0 до 2π
+    return angle < 0 ? angle + 2 * Math.PI : angle % (2 * Math.PI);
+}
+
+function angleDifference(angle1, angle2) {
+    const diff = normalizeAngle(angle1 - angle2);
+    return diff > Math.PI ? diff - 2 * Math.PI : diff; // Приводим к диапазону от -π до π
+}
+
+function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
+    const targetAngle = chart_data.roles[roleId].angle;
+    const skills = chart_data.skills;
+    const skillsToArr = Object.entries(skills);
+
+    skillsToArr.sort((a, b) => {
+        const angleDiffA = Math.abs(angleDifference(a[1].angle, targetAngle));
+        const angleDiffB = Math.abs(angleDifference(b[1].angle, targetAngle));
+        return angleDiffA - angleDiffB;
+    });
+
+    return skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b);
 }
 
 function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
-    const targetAngle = chart_data.skills[skillId].angle
-    const roles = chart_data.roles
-    const rolesToArr = Object.entries(roles)
-    rolesToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-    return rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+    const targetAngle = chart_data.skills[skillId].angle;
+    const roles = chart_data.roles;
+    const rolesToArr = Object.entries(roles);
+
+    rolesToArr.sort((a, b) => {
+        const angleDiffA = Math.abs(angleDifference(a[1].angle, targetAngle));
+        const angleDiffB = Math.abs(angleDifference(b[1].angle, targetAngle));
+        return angleDiffA - angleDiffB;
+    });
+
+    return rolesToArr.slice(0, closestCount).map(role => role[0]).sort((a, b) => a - b);
 }
 
 
@@ -227,15 +265,14 @@ function draw() {
         chart_data.linkedPoints = [...commonSkillsArr]
         const skillIdsForReplace = findClosestSkillIdsForRole(chart_data, chart_data.selectedRoleId, commonSkillsArr.length)
         const skillsValues = Object.values(chart_data.skills)
-        const start = +skillIdsForReplace.at(0)
-        const end = +skillIdsForReplace.at(-1)
-        for (let i = start; i <= end; i++) {
+        for (let i = 0; i < skillIdsForReplace.length; i++) {
+            let j = +skillIdsForReplace[i]
             const skill_1 = commonSkillsArr.pop()
-            const skill_2 = skillsValues[i].name
+            const skill_2 = skillsValues[j].name
             if (skill_1 === skill_2) continue
             const objectForReplace = skillsValues.find(skill => skill.name === skill_1)
             objectForReplace.name = skill_2
-            skillsValues[i].name = skill_1
+            skillsValues[j].name = skill_1
         }
     }
 
@@ -250,12 +287,11 @@ function draw() {
         }, [])
         chart_data.linkedPoints = rolesForSelectedSkill
         const roleIdsForReplace = findClosestRoleIdsForSkill(chart_data, chart_data.selectedSkillId, rolesForSelectedSkill.length)
-        const roleValues = Object.values(chart_data.roles)
-        const start = +roleIdsForReplace.at(0)
-        const end = +roleIdsForReplace.at(-1)
-        for (let i = start; i <= end; i++) {
+        for (let i = 0; i < roleIdsForReplace.length; i++) {
+            let j = roleIdsForReplace[i]
+            const roleValues = Object.values(chart_data.roles)
             const role_1 = rolesForSelectedSkill.pop()
-            const role_2 = roleValues[i].name
+            const role_2 = roleValues[j].name
             if (role_1 === role_2) continue
             let objectForReplace_1 = roleValues.findIndex(role => role.name === role_1)
             let objectForReplace_2 = roleValues.findIndex(role => role.name === role_2)
@@ -332,7 +368,7 @@ function draw() {
     // Draw rings
     drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
     drawRing(canvasCenter.x, canvasCenter.y, outerRingRadius);
-    console.log(chart_data)
+
     //Draw points
     for (let i = 0; i < rolesCount; i++) {
         let variant
