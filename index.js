@@ -72,7 +72,6 @@ const skillsList = chart_data.skillsList
 const rolesAngleStep = (2 * Math.PI) / rolesCount;
 const skillsAngleStep = (2 * Math.PI) / skillsCount;
 
-
 //---
 
 //---Get canvas
@@ -175,23 +174,27 @@ function drawText(textX, textY, text) {
     c.fillText(line, textX, textY);
 }
 
-function findClosestIndexes(arr, target, count) {
-    const onlyAngles = arr.map(el => el[3])
-    const indexedArray = onlyAngles.map((value, index) => ({value, index}));
-    indexedArray.sort((a, b) => Math.abs(a.value - target) - Math.abs(b.value - target));
-    const closestIndices = indexedArray.slice(0, count).map(item => item.index);
-    closestIndices.sort((a, b) => a - b);
-
-    return closestIndices;
-
+function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
+    const targetAngle = chart_data.roles[roleId].angle
+    const skills = chart_data.skills
+    const skillsToArr = Object.entries(skills)
+    skillsToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
+    const closestIds = skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+    return closestIds
 }
+
+function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
+    const targetAngle = chart_data.skills[skillId].angle
+    const roles = chart_data.roles
+    const rolesToArr = Object.entries(roles)
+    rolesToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
+    const closestIds = rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
+    return closestIds
+}
+
 
 function draw() {
     c.clearRect(0, 0, canvasWidth, canvasHeight);
-
-    // Draw rings
-    drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
-    drawRing(canvasCenter.x, canvasCenter.y, outerRingRadius);
 
     // Get element coordinates
     for (let i = 0; i < rolesCount; i++) {
@@ -219,37 +222,58 @@ function draw() {
         chart_data.skills[i].text_y = text_Y
         chart_data.skills[i].angle = angle
     }
-    
-    // if (selectedRoleIndex !== null) {
-    //     const indexes = findClosestIndexes(roles_xy, selectedRole_xy[3], activeSkills.length)
-    //     const titles = skills_xy.map(el => el[2])
-    //     for (let i = indexes[0]; i <= indexes.at(-1); i++) {
-    //         let saveChanged = titles[i]
-    //         let forInsert = activeSkills.splice(0, 1)[0]
-    //         titles[i] = forInsert
-    //         let index = titles.findIndex((item, index) => {
-    //             return item === forInsert && !indexes.includes(index)
-    //         })
-    //         titles[index] = saveChanged
-    //     }
-    //     skills_xy = skills_xy.map((item, index) => {
-    //         return [item[0], item[1], titles[index], item[3]]
-    //     })
-    //     skills_text_xy = skills_text_xy.map((item, index) => {
-    //         return [item[0], item[1], titles[index]]
-    //     })
-    //     console.log()
-    // }
+    //Sort skills for selected role
+    if (chart_data.selectedRoleId !== null) {
+        const mainSkillsForSelectedRole = chart_data.roles[chart_data.selectedRoleId].mainSkills;
+        const otherSkillsForSelectedRole = chart_data.roles[chart_data.selectedRoleId].otherSkills;
+        const commonSkillsArr = [...mainSkillsForSelectedRole, ...otherSkillsForSelectedRole];
+        const skillIdsForReplace = findClosestSkillIdsForRole(chart_data, chart_data.selectedRoleId, commonSkillsArr.length)
+        const skillsValues = Object.values(chart_data.skills)
+        const start = +skillIdsForReplace.at(0)
+        const end = +skillIdsForReplace.at(-1)
+        for (let i = start; i <= end; i++) {
+            const skill_1 = commonSkillsArr.pop()
+            const skill_2 = skillsValues[i].name
+            if (skill_1 === skill_2) continue
+            const objectForReplace = skillsValues.find(skill => skill.name === skill_1)
+            objectForReplace.name = skill_2
+            skillsValues[i].name = skill_1
+        }
+    }
+
+
+    //Sort roles for selected skill
+    if (chart_data.selectedSkillId !== null) {
+        const selectedSkillName = chart_data.skills[chart_data.selectedSkillId].name
+        const rolesForSelectedSkill = Object.values(chart_data.roles).reduce((res, role) => {
+            if (role.mainSkills.includes(selectedSkillName) || role.otherSkills.includes(selectedSkillName)) {
+                res.push(role.name)
+            }
+            return res
+        }, [])
+        const roleIdsForReplace = findClosestRoleIdsForSkill(chart_data, chart_data.selectedSkillId, rolesForSelectedSkill.length)
+        const roleValues = Object.values(chart_data.roles)
+        const start = +roleIdsForReplace.at(0)
+        const end = +roleIdsForReplace.at(-1)
+        for (let i = start; i <= end; i++) {
+            const role_1 = rolesForSelectedSkill.pop()
+            const role_2 = roleValues[i].name
+            if (role_1 === role_2) continue
+            let objectForReplace_1 = roleValues.findIndex(role => role.name === role_1)
+            let objectForReplace_2 = roleValues.findIndex(role => role.name === role_2)
+            let temp = chart_data.roles[objectForReplace_2]
+            chart_data.roles[objectForReplace_2] = chart_data.roles[objectForReplace_1]
+            chart_data.roles[objectForReplace_1] = temp
+        }
+    }
 
     //Draw lines
-
     if (chart_data.selectedRoleId !== null) {
 
         const selectedRole = chart_data.roles[chart_data.selectedRoleId];
         const skills = Object.values(chart_data.skills)
         for (let i = 0; i < selectedRole.otherSkills.length; i++) {
             const skill = skills.find(skill => skill.name === selectedRole.otherSkills[i])
-            console.log(skill)
             c.beginPath();
             c.strokeStyle = COLOR_ORANGE_STRONG
             c.moveTo(selectedRole.x, selectedRole.y)
@@ -269,7 +293,34 @@ function draw() {
         }
 
     }
-    //Draw roles and skills
+    if (chart_data.selectedSkillId !== null) {
+
+        const selectedSkill = chart_data.skills[chart_data.selectedSkillId];
+        const rolesArr = Object.values(chart_data.roles)
+        const rolesForSelectedSkill = rolesArr.reduce((res, role) => {
+            if (role.mainSkills.includes(selectedSkill.name) || role.otherSkills.includes(selectedSkill.name)) {
+                res.push(role.name)
+            }
+            return res
+        }, [])
+        for (let i = 0; i < rolesForSelectedSkill.length; i++) {
+            const role = Object.values(chart_data.roles).find(role => role.name === rolesForSelectedSkill[i])
+            c.beginPath();
+            c.strokeStyle = COLOR_ORANGE_STRONG
+            c.moveTo(selectedSkill.x, selectedSkill.y)
+            c.lineTo(role.x, role.y)
+            c.stroke()
+            c.closePath()
+        }
+
+
+    }
+
+    // Draw rings
+    drawRing(canvasCenter.x, canvasCenter.y, innerRingRadius);
+    drawRing(canvasCenter.x, canvasCenter.y, outerRingRadius);
+
+    //Draw points
     for (let i = 0; i < rolesCount; i++) {
         let variant
 
@@ -280,7 +331,6 @@ function draw() {
         }
         let currentRole = chart_data.roles[i]
         drawPoint(currentRole.x, currentRole.y, variant)
-        drawText(currentRole.text_x, currentRole.text_y, currentRole.name);
     }
 
     for (let i = 0; i < skillsCount; i++) {
@@ -295,117 +345,76 @@ function draw() {
         }
         let currentSkill = chart_data.skills[i]
         drawPoint(currentSkill.x, currentSkill.y, variant)
+    }
+
+    //Draw text
+    for (let i = 0; i < rolesCount; i++) {
+        let currentRole = chart_data.roles[i]
+        console.log(currentRole)
+        drawText(currentRole.text_x, currentRole.text_y, currentRole.name);
+    }
+
+    for (let i = 0; i < skillsCount; i++) {
+        let currentSkill = chart_data.skills[i]
         drawText(currentSkill.text_x, currentSkill.text_y, currentSkill.name);
     }
-}
+
 
 // Event handlers
-canvas.addEventListener('click', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
 
-    for (let i = 0; i < rolesCount; i++) {
-        let currentRole = chart_data.roles[i]
-        const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
-        if (distance < 12) {
-            chart_data.selectedSkillId = null
-            chart_data.selectedRoleId = i;
-            draw();
-            return;
+        for (let i = 0; i < rolesCount; i++) {
+            let currentRole = chart_data.roles[i]
+            const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
+            if (distance < 12) {
+                chart_data.selectedSkillId = null
+                chart_data.selectedRoleId = i;
+                draw();
+                return;
+            }
         }
-    }
-    for (let i = 0; i < skillsCount; i++) {
-        let currentSkill = chart_data.skills[i]
-        const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
-        if (distance < 12) {
-            chart_data.selectedRoleId = null
-            chart_data.selectedSkillId = i;
-            draw();
-            return;
+        for (let i = 0; i < skillsCount; i++) {
+            let currentSkill = chart_data.skills[i]
+            const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
+            if (distance < 12) {
+                chart_data.selectedRoleId = null
+                chart_data.selectedSkillId = i;
+                draw();
+                return;
+            }
         }
-    }
-});
+    });
 
-canvas.addEventListener('mousemove', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    let isOverPoint = false;
+    canvas.addEventListener('mousemove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        let isOverPoint = false;
 
-    for (let i = 0; i < rolesCount; i++) {
-        let currentRole = chart_data.roles[i]
-        const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
-        if (distance < 12) {
-            isOverPoint = true;
-            break;
+        for (let i = 0; i < rolesCount; i++) {
+            let currentRole = chart_data.roles[i]
+            const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
+            if (distance < 12) {
+                isOverPoint = true;
+                break;
+            }
         }
-    }
-    for (let i = 0; i < skillsCount; i++) {
-        let currentSkill = chart_data.skills[i]
-        const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
-        if (distance < 12) {
-            isOverPoint = true;
-            break;
+        for (let i = 0; i < skillsCount; i++) {
+            let currentSkill = chart_data.skills[i]
+            const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
+            if (distance < 12) {
+                isOverPoint = true;
+                break;
+            }
         }
-    }
 
-    // Изменение курсора
-    canvas.style.cursor = isOverPoint ? 'pointer' : 'default';
-});
+        // Изменение курсора
+        canvas.style.cursor = isOverPoint ? 'pointer' : 'default';
+    });
+}
 
 draw();
-
-const chart_example = {
-    roles: {
-        id_383839: {
-            name: 'Финансовый аналитик',
-            x: 200,
-            y: 400,
-            angle: 2.08,
-            mainSkills: ["Excel", "SQL", "VBA", "1С"],
-            otherSkills: ["Power BI", "Python"],
-        },
-        id_383845: {
-            name: 'Предприниматель',
-            x: 240,
-            y: 380,
-            angle: 3.14,
-            mainSkills: ["1C", "Excel", "Power BI"],
-            otherSkills: [
-                "Google Analytics",
-                "Яндекс.Метрика",
-                "Python",
-                "SQL",
-                "Tilda",
-            ],
-        }
-    },
-    skills: {
-        id_383123: {
-            name: 'Python',
-            x: 465,
-            y: 688,
-            angle: 0.56
-        },
-        id_386768: {
-            name: 'SQL',
-            x: 190,
-            y: 365,
-            angle: 1.38
-        }
-    },
-
-    getRoles() {
-        for (let key in this.roles) {
-            console.log(this.roles[key].name)
-        }
-    },
-    getSkills() {
-        for (let key in this.skills) {
-            console.log(this.skills[key].name)
-        }
-    }
-
-}
 
