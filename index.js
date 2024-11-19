@@ -172,25 +172,8 @@ function drawText(textX, textY, text) {
     c.fillText(line, textX, textY);
 }
 
-// function findClosestSkillIdsForRole(chart_data, roleId, closestCount) {
-//     const targetAngle = chart_data.roles[roleId].angle
-//     const skills = chart_data.skills
-//     const skillsToArr = Object.entries(skills)
-//     skillsToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-//     return skillsToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
-//
-// }
-//
-// function findClosestRoleIdsForSkill(chart_data, skillId, closestCount) {
-//     const targetAngle = chart_data.skills[skillId].angle
-//     const roles = chart_data.roles
-//     const rolesToArr = Object.entries(roles)
-//     rolesToArr.sort((a, b) => Math.abs(a[1].angle - targetAngle) - Math.abs(b[1].angle - targetAngle))
-//     return rolesToArr.slice(0, closestCount).map(skill => skill[0]).sort((a, b) => a - b)
-// }
 
 function normalizeAngle(angle) {
-    // Приводим угол к диапазону от 0 до 2π
     return angle < 0 ? angle + 2 * Math.PI : angle % (2 * Math.PI);
 }
 
@@ -345,17 +328,32 @@ function draw() {
 
         const selectedSkill = chart_data.skills[chart_data.selectedSkillId];
         const rolesArr = Object.values(chart_data.roles)
-        const rolesForSelectedSkill = rolesArr.reduce((res, role) => {
-            if (role.mainSkills.includes(selectedSkill.name) || role.otherSkills.includes(selectedSkill.name)) {
+        const rolesForSelectedOtherSkill = rolesArr.reduce((res, role) => {
+            if (role.otherSkills.includes(selectedSkill.name)) {
                 res.push(role.name)
             }
             return res
         }, [])
-        chart_data.linkedPoints = rolesForSelectedSkill
-        for (let i = 0; i < rolesForSelectedSkill.length; i++) {
-            const role = Object.values(chart_data.roles).find(role => role.name === rolesForSelectedSkill[i])
+        const rolesForSelectedMainSkill = rolesArr.reduce((res, role) => {
+            if (role.mainSkills.includes(selectedSkill.name)) {
+                res.push(role.name)
+            }
+            return res
+        }, [])
+        chart_data.linkedPoints = [...rolesForSelectedOtherSkill, ...rolesForSelectedMainSkill]
+        for (let i = 0; i < rolesForSelectedOtherSkill.length; i++) {
+            const role = Object.values(chart_data.roles).find(role => role.name === rolesForSelectedOtherSkill[i])
             c.beginPath();
             c.strokeStyle = COLOR_ORANGE_STRONG
+            c.moveTo(selectedSkill.x, selectedSkill.y)
+            c.lineTo(role.x, role.y)
+            c.stroke()
+            c.closePath()
+        }
+        for (let i = 0; i < rolesForSelectedMainSkill.length; i++) {
+            const role = Object.values(chart_data.roles).find(role => role.name === rolesForSelectedMainSkill[i])
+            c.beginPath();
+            c.strokeStyle = COLOR_VIOLET
             c.moveTo(selectedSkill.x, selectedSkill.y)
             c.lineTo(role.x, role.y)
             c.stroke()
@@ -422,6 +420,7 @@ canvas.addEventListener('click', (event) => {
         let currentSkill = chart_data.skills[i]
         const distance = Math.sqrt((mouseX - currentSkill.x) ** 2 + (mouseY - currentSkill.y) ** 2);
         if (distance < 12) {
+            if (chart_data.selectedSkillId === i) return;
             chart_data.selectedRoleId = null
             chart_data.selectedSkillId = i;
             draw();
@@ -433,6 +432,7 @@ canvas.addEventListener('click', (event) => {
         let currentRole = chart_data.roles[i]
         const distance = Math.sqrt((mouseX - currentRole.x) ** 2 + (mouseY - currentRole.y) ** 2);
         if (distance < 12) {
+            if (chart_data.selectedRoleId === i) return;
             chart_data.selectedSkillId = null
             chart_data.selectedRoleId = i;
             draw();
@@ -466,8 +466,6 @@ canvas.addEventListener('mousemove', (event) => {
         }
     }
 
-
-    // Изменение курсора
     canvas.style.cursor = isOverPoint ? 'pointer' : 'default';
 });
 
